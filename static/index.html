@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud Drive</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;--brand:#0f766e;--brand-dark:#0b5a54;--bad:#b91c1c;--ok:#15803d}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+.hidden{display:none!important}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--brand);color:#fff;border:0;border-radius:8px;padding:9px 16px}
+.btn:hover{background:var(--brand-dark)}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.ghost:hover{background:#f3f4f6}
+.btn.small{padding:4px 10px;font-size:13px}
+.btn.danger{color:var(--bad)}
+input,select{font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:8px;width:100%}
+input:focus,select:focus{outline:2px solid var(--brand);border-color:transparent}
+.auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.auth-card{background:var(--card);padding:28px;border-radius:14px;width:100%;max-width:380px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.auth-card h1{margin:0 0 4px;font-size:24px;color:var(--brand)}
+.auth-card p{margin:0 0 18px;color:var(--muted)}
+.auth-card label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+.auth-card .btn{width:100%;margin-top:18px}
+.switch{text-align:center;margin-top:14px;font-size:14px;color:var(--muted)}
+.switch a{color:var(--brand);cursor:pointer;font-weight:600}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header .logo{font-weight:700;font-size:20px;color:var(--brand)}
+header .spacer{flex:1}
+.meter{width:170px}
+.meter small{color:var(--muted);display:block;margin-bottom:3px;font-size:12px}
+.bar{height:6px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar div{height:100%;background:var(--brand);width:0}
+.layout{display:flex;gap:20px;padding:20px;max-width:1100px;margin:0 auto}
+aside{width:180px;flex-shrink:0}
+aside button{display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;border-radius:8px;color:var(--ink)}
+aside button.active{background:#d9efec;color:var(--brand-dark);font-weight:600}
+aside button:hover{background:#e7ebef}
+main{flex:1;min-width:0;background:var(--card);border-radius:12px;padding:18px;border:2px dashed transparent;min-height:300px}
+main.drag{border-color:var(--brand);background:#f0fbf9}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.crumbs{flex:1;min-width:160px;font-size:15px}
+.crumbs a{color:var(--brand);cursor:pointer}
+.crumbs span{color:var(--muted);margin:0 6px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;color:var(--muted);font-weight:600;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:hover td{background:#fafbfc}
+.name{display:flex;align-items:center;gap:8px}
+.name .link{cursor:pointer;font-weight:500}
+.badge{font-size:11px;padding:2px 7px;border-radius:10px;background:#e5e7eb;color:#374151;white-space:nowrap}
+.badge.green{background:#d9efec;color:var(--brand-dark)}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.empty{color:var(--muted);text-align:center;padding:40px 10px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal-box{background:#fff;border-radius:12px;padding:20px;width:100%;max-width:520px;max-height:85vh;overflow:auto}
+.modal-box h3{margin:0 0 12px}
+.row{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.row .grow{flex:1;min-width:0}
+.row small{color:var(--muted)}
+.form-row{display:flex;gap:8px;margin-top:14px}
+.form-row input{flex:1}.form-row select{width:110px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:20}
+#toast div{background:#1f2937;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+#toast div.bad{background:var(--bad)}
+@media(max-width:700px){.layout{flex-direction:column;padding:12px}aside{width:100%;display:flex;gap:6px}aside button{text-align:center}.meter{display:none}}
+</style>
+</head>
+<body>
+
+<div id="auth" class="auth hidden">
+  <div class="auth-card">
+    <h1>&#9729; Cloud Drive</h1>
+    <p id="authSub">Sign in to your files</p>
+    <form id="authForm">
+      <div id="emailBox" class="hidden"><label for="email">Email</label><input id="email" type="email" autocomplete="email"></div>
+      <label for="username" id="userLabel">Username or email</label><input id="username" autocomplete="username" required>
+      <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required>
+      <button class="btn" id="authBtn" type="submit">Sign in</button>
+    </form>
+    <div class="switch"><span id="switchText">New here?</span> <a id="switchLink">Create an account</a></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="logo">&#9729; Cloud Drive</div>
+    <div class="spacer"></div>
+    <div class="meter"><small id="meterText">Storage</small><div class="bar"><div id="meterBar"></div></div></div>
+    <div id="who"></div>
+    <button class="btn ghost small" id="logoutBtn">Sign out</button>
+  </header>
+  <div class="layout">
+    <aside>
+      <button id="tabDrive" class="active">My Drive</button>
+      <button id="tabShared">Shared with me</button>
+    </aside>
+    <main id="main">
+      <div class="toolbar">
+        <div class="crumbs" id="crumbs"></div>
+        <button class="btn ghost" id="newFolderBtn">+ New folder</button>
+        <button class="btn" id="uploadBtn">&#8679; Upload</button>
+      </div>
+      <div class="table-wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+      <div class="empty hidden" id="empty"></div>
+    </main>
+  </div>
+</div>
+
+<div id="modal" class="modal hidden"><div class="modal-box" id="modalBox"></div></div>
+<div id="toast"></div>
+<input type="file" id="fileInput" multiple hidden>
+<input type="file" id="versionInput" hidden>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let token = localStorage.getItem('token');
+let me = null;
+try { me = JSON.parse(localStorage.getItem('user') || 'null'); } catch (e) { me = null; }
+let view = 'drive', folderId = null, registerMode = false, versionTarget = null;
+
+/* ---------- small helpers ---------- */
+function el(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined) continue;
+    e.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return e;
+}
+function toast(msg, bad) {
+  const t = el('div', { class: bad ? 'bad' : '' }, msg);
+  $('#toast').append(t);
+  setTimeout(() => t.remove(), 3500);
+}
+function fmtSize(n) {
+  n = Number(n) || 0;
+  if (n < 1024) return n + ' B';
+  const units = ['KB', 'MB', 'GB']; let i = -1;
+  do { n /= 1024; i++; } while (n >= 1024 && i < units.length - 1);
+  return n.toFixed(1) + ' ' + units[i];
+}
+function fmtDate(s) {
+  if (!s) return '';
+  let t = String(s).replace(' ', 'T');
+  if (!/[zZ]|[+-]\d\d:\d\d$/.test(t)) t += 'Z';
+  const d = new Date(t);
+  return isNaN(d) ? s : d.toLocaleString();
+}
+async function api(path, opts) {
+  opts = opts || {};
+  const headers = Object.assign({}, opts.headers || {});
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  if (opts.json !== undefined) { headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(opts.json); }
+  const res = await fetch(path, { method: opts.method || 'GET', headers, body: opts.body });
+  let data = {};
+  try { data = await res.json(); } catch (e) { /* no body */ }
+  if (res.status === 401 && token) { logout(); throw new Error('Session expired, please sign in again'); }
+  if (!res.ok) throw new Error(data.error || ('Error ' + res.status));
+  return data;
+}
+
+/* ---------- modal ---------- */
+function openModal(title, ...content) {
+  const box = $('#modalBox');
+  box.replaceChildren(el('h3', {}, title), ...content,
+    el('div', { class: 'form-row', style: 'justify-content:flex-end' }, el('button', { class: 'btn ghost', onclick: closeModal }, 'Close')));
+  $('#modal').classList.remove('hidden');
+}
+function closeModal() { $('#modal').classList.add('hidden'); }
+$('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
+
+/* ---------- auth ---------- */
+function setAuthMode(reg) {
+  registerMode = reg;
+  $('#emailBox').classList.toggle('hidden', !reg);
+  $('#email').required = reg;
+  $('#authSub').textContent = reg ? 'Create your account' : 'Sign in to your files';
+  $('#userLabel').textContent = reg ? 'Username (letters, numbers, _)' : 'Username or email';
+  $('#authBtn').textContent = reg ? 'Create account' : 'Sign in';
+  $('#switchText').textContent = reg ? 'Already have an account?' : 'New here?';
+  $('#switchLink').textContent = reg ? 'Sign in' : 'Create an account';
+  $('#password').autocomplete = reg ? 'new-password' : 'current-password';
+}
+$('#switchLink').onclick = () => setAuthMode(!registerMode);
+$('#authForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = { username: $('#username').value, password: $('#password').value };
+  if (registerMode) body.email = $('#email').value;
+  try {
+    const d = await api(registerMode ? '/api/register' : '/api/login', { method: 'POST', json: body });
+    token = d.token; me = d.user;
+    localStorage.setItem('token', token); localStorage.setItem('user', JSON.stringify(me));
+    $('#password').value = '';
+    showApp();
+  } catch (err) { toast(err.message, true); }
+});
+function logout() {
+  token = null; me = null;
+  localStorage.removeItem('token'); localStorage.removeItem('user');
+  $('#app').classList.add('hidden'); $('#auth').classList.remove('hidden');
+  setAuthMode(false); $('#username').value = ''; $('#password').value = ''; $('#email').value = '';
+}
+$('#logoutBtn').onclick = logout;
+
+function showApp() {
+  $('#auth').classList.add('hidden'); $('#app').classList.remove('hidden');
+  $('#who').textContent = me ? '@' + me.username : '';
+  view = 'drive'; folderId = null; refresh();
+}
+
+/* ---------- tabs ---------- */
+function setView(v) {
+  view = v; folderId = null;
+  $('#tabDrive').classList.toggle('active', v === 'drive');
+  $('#tabShared').classList.toggle('active', v === 'shared');
+  $('#newFolderBtn').classList.toggle('hidden', v !== 'drive');
+  $('#uploadBtn').classList.toggle('hidden', v !== 'drive');
+  refresh();
+}
+$('#tabDrive').onclick = () => setView('drive');
+$('#tabShared').onclick = () => setView('shared');
+
+/* ---------- listing ---------- */
+async function refresh() {
+  try {
+    if (view === 'drive') await renderDrive(); else await renderShared();
+    updateStorage();
+  } catch (err) { toast(err.message, true); }
+}
+async function updateStorage() {
+  try {
+    const s = await api('/api/storage');
+    $('#meterText').textContent = fmtSize(s.used_bytes) + ' of ' + fmtSize(s.quota_bytes) + ' used';
+    $('#meterBar').style.width = Math.min(100, s.used_bytes / s.quota_bytes * 100) + '%';
+  } catch (e) { /* ignore */ }
+}
+function headRow(...cols) { $('#thead').replaceChildren(el('tr', {}, cols.map((c) => el('th', {}, c)))); }
+function showEmpty(text) {
+  $('#empty').textContent = text || '';
+  $('#empty').classList.toggle('hidden', !text);
+}
+
+async function renderDrive() {
+  const d = await api('/api/list' + (folderId ? '?folder=' + folderId : ''));
+  const crumbs = $('#crumbs');
+  crumbs.replaceChildren(el('a', { onclick: () => { folderId = null; refresh(); } }, 'My Drive'));
+  d.breadcrumb.forEach((b) => {
+    crumbs.append(el('span', {}, '/'), el('a', { onclick: () => { folderId = b.id; refresh(); } }, b.name));
+  });
+  headRow('Name', 'Modified', 'Size', '');
+  const rows = [];
+  d.folders.forEach((f) => rows.push(el('tr', {},
+    el('td', {}, el('div', { class: 'name' }, '\uD83D\uDCC1', el('span', { class: 'link', onclick: () => { folderId = f.id; refresh(); } }, f.name))),
+    el('td', {}, fmtDate(f.created_at)), el('td', {}, '\u2014'),
+    el('td', {}, el('div', { class: 'actions' }, el('button', { class: 'btn ghost small danger', onclick: () => deleteFolder(f) }, 'Delete'))))));
+  d.files.forEach((f) => rows.push(el('tr', {},
+    el('td', {}, el('div', { class: 'name' }, '\uD83D\uDCC4', el('span', {}, f.name),
+      f.current_version > 1 ? el('span', { class: 'badge' }, 'v' + f.current_version) : null,
+      f.shared_count > 0 ? el('span', { class: 'badge green' }, 'shared') : null)),
+    el('td', {}, fmtDate(f.uploaded_at)), el('td', {}, fmtSize(f.size_bytes)),
+    el('td', {}, el('div', { class: 'actions' },
+      el('button', { class: 'btn ghost small', onclick: () => download(f.id) }, 'Download'),
+      el('button', { class: 'btn ghost small', onclick: () => showVersions(f.id) }, 'Versions'),
+      el('button', { class: 'btn ghost small', onclick: () => showShare(f) }, 'Share'),
+      el('button', { class: 'btn ghost small', onclick: () => renameFile(f) }, 'Rename'),
+      el('button', { class: 'btn ghost small danger', onclick: () => deleteFile(f) }, 'Delete'))))));
+  $('#tbody').replaceChildren(...rows);
+  showEmpty(rows.length ? '' : 'This folder is empty. Upload a file or drag and drop it here.');
+}
+
+async function renderShared() {
+  const d = await api('/api/shared');
+  $('#crumbs').replaceChildren(el('strong', {}, 'Shared with me'));
+  headRow('Name', 'Owner', 'Access', 'Size', '');
+  const rows = d.files.map((f) => el('tr', {},
+    el('td', {}, el('div', { class: 'name' }, '\uD83D\uDCC4', el('span', {}, f.name),
+      f.current_version > 1 ? el('span', { class: 'badge' }, 'v' + f.current_version) : null)),
+    el('td', {}, '@' + f.owner),
+    el('td', {}, el('span', { class: 'badge ' + (f.access === 'edit' ? 'green' : '') }, f.access)),
+    el('td', {}, fmtSize(f.size_bytes)),
+    el('td', {}, el('div', { class: 'actions' },
+      el('button', { class: 'btn ghost small', onclick: () => download(f.id) }, 'Download'),
+      el('button', { class: 'btn ghost small', onclick: () => showVersions(f.id) }, 'Versions'),
+      f.access === 'edit' ? el('button', { class: 'btn ghost small', onclick: () => pickVersionFile(f.id) }, 'Upload new version') : null))));
+  $('#tbody').replaceChildren(...rows);
+  showEmpty(rows.length ? '' : 'Nothing has been shared with you yet.');
+}
+
+/* ---------- actions ---------- */
+async function download(id, version) {
+  try {
+    const d = await api('/api/files/' + id + '/download' + (version ? '?version=' + version : ''));
+    const a = el('a', { href: d.url, download: d.filename });
+    document.body.append(a); a.click(); a.remove();
+  } catch (err) { toast(err.message, true); }
+}
+async function uploadFiles(files) {
+  for (const f of files) {
+    const fd = new FormData();
+    fd.append('file', f);
+    if (folderId) fd.append('folder_id', folderId);
+    try { await api('/api/files', { method: 'POST', body: fd }); toast('Uploaded ' + f.name); }
+    catch (err) { toast(f.name + ': ' + err.message, true); }
+  }
+  refresh();
+}
+$('#uploadBtn').onclick = () => $('#fileInput').click();
+$('#fileInput').onchange = (e) => { uploadFiles([...e.target.files]); e.target.value = ''; };
+function pickVersionFile(id) { versionTarget = id; $('#versionInput').click(); }
+$('#versionInput').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f || !versionTarget) return;
+  const fd = new FormData(); fd.append('file', f); fd.append('file_id', versionTarget);
+  try { const d = await api('/api/files', { method: 'POST', body: fd }); toast('Uploaded version ' + d.version); closeModal(); refresh(); }
+  catch (err) { toast(err.message, true); }
+};
+$('#newFolderBtn').onclick = async () => {
+  const name = prompt('Folder name');
+  if (!name) return;
+  try { await api('/api/folders', { method: 'POST', json: { name, parent_id: folderId } }); refresh(); }
+  catch (err) { toast(err.message, true); }
+};
+async function deleteFolder(f) {
+  if (!confirm('Delete folder "' + f.name + '"? (it must be empty)')) return;
+  try { await api('/api/folders/' + f.id, { method: 'DELETE' }); refresh(); } catch (err) { toast(err.message, true); }
+}
+async function deleteFile(f) {
+  if (!confirm('Delete "' + f.name + '" and all its versions? This cannot be undone.')) return;
+  try { await api('/api/files/' + f.id, { method: 'DELETE' }); toast('Deleted'); refresh(); } catch (err) { toast(err.message, true); }
+}
+async function renameFile(f) {
+  const name = prompt('New name', f.name);
+  if (!name || name === f.name) return;
+  try { await api('/api/files/' + f.id, { method: 'PATCH', json: { name } }); refresh(); } catch (err) { toast(err.message, true); }
+}
+
+/* ---------- versions ---------- */
+async function showVersions(id) {
+  try {
+    const d = await api('/api/files/' + id + '/versions');
+    const canEdit = d.access === 'owner' || d.access === 'edit';
+    const rows = d.versions.map((v) => el('div', { class: 'row' },
+      el('div', { class: 'grow' },
+        el('strong', {}, 'Version ' + v.version_no), ' ',
+        v.version_no === d.file.current_version ? el('span', { class: 'badge green' }, 'current') : null,
+        el('br'), el('small', {}, fmtSize(v.size_bytes) + ' \u00B7 @' + v.uploaded_by + ' \u00B7 ' + fmtDate(v.uploaded_at))),
+      el('button', { class: 'btn ghost small', onclick: () => download(id, v.version_no) }, 'Download'),
+      canEdit && v.version_no !== d.file.current_version
+        ? el('button', { class: 'btn ghost small', onclick: async () => {
+            try { await api('/api/files/' + id + '/restore', { method: 'POST', json: { version: v.version_no } }); toast('Restored version ' + v.version_no); showVersions(id); refresh(); }
+            catch (err) { toast(err.message, true); } } }, 'Restore') : null));
+    const extra = canEdit ? el('div', { class: 'form-row' }, el('button', { class: 'btn', onclick: () => pickVersionFile(id) }, 'Upload new version')) : null;
+    openModal('Versions of ' + d.file.name, ...rows, extra);
+  } catch (err) { toast(err.message, true); }
+}
+
+/* ---------- sharing ---------- */
+async function showShare(f) {
+  try {
+    const d = await api('/api/files/' + f.id + '/shares');
+    const list = d.shares.length
+      ? d.shares.map((s) => el('div', { class: 'row' },
+          el('div', { class: 'grow' }, '@' + s.username, ' ', el('span', { class: 'badge ' + (s.access === 'edit' ? 'green' : '') }, s.access)),
+          el('button', { class: 'btn ghost small danger', onclick: async () => {
+            try { await api('/api/files/' + f.id + '/share/' + s.user_id, { method: 'DELETE' }); showShare(f); refresh(); } catch (err) { toast(err.message, true); } } }, 'Remove')))
+      : [el('div', { class: 'empty' }, 'Not shared with anyone yet.')];
+    const user = el('input', { placeholder: 'Username to share with', autocomplete: 'off' });
+    const access = el('select', {}, el('option', { value: 'view' }, 'Can view'), el('option', { value: 'edit' }, 'Can edit'));
+    const add = el('button', { class: 'btn', onclick: async () => {
+      try { await api('/api/files/' + f.id + '/share', { method: 'POST', json: { username: user.value, access: access.value } }); toast('Shared'); showShare(f); refresh(); }
+      catch (err) { toast(err.message, true); } } }, 'Share');
+    openModal('Share "' + f.name + '"', ...list, el('div', { class: 'form-row' }, user, access, add));
+  } catch (err) { toast(err.message, true); }
+}
+
+/* ---------- drag and drop ---------- */
+const main = $('#main');
+['dragenter', 'dragover'].forEach((ev) => main.addEventListener(ev, (e) => { if (view !== 'drive') return; e.preventDefault(); main.classList.add('drag'); }));
+['dragleave', 'drop'].forEach((ev) => main.addEventListener(ev, (e) => { e.preventDefault(); main.classList.remove('drag'); }));
+main.addEventListener('drop', (e) => { if (view === 'drive' && e.dataTransfer.files.length) uploadFiles([...e.dataTransfer.files]); });
+
+/* ---------- start ---------- */
+setAuthMode(false);
+if (token && me) showApp(); else $('#auth').classList.remove('hidden');
+</script>
+</body>
+</html>
